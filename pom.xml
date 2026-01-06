@@ -7,6 +7,7 @@
     <groupId>io.nebulalogic</groupId>
     <artifactId>nebula-engine</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <!-- 关键：父工程必须是pom -->
     <packaging>pom</packaging>
 
     <properties>
@@ -14,19 +15,26 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
         <aviator.version>5.4.3</aviator.version>
         <lombok.version>1.18.30</lombok.version>
+
+        <!-- NebulaLogic 版本管理 -->
+        <nebulalogic.version>1.0.0-SNAPSHOT</nebulalogic.version>
     </properties>
 
-    <name>NebulaLogic Engine</name>
+    <name>Nebula Engine</name>
     <description>A lightweight business rules engine that diffuses like nebula</description>
+    <!-- 域名 -->
     <url>https://nebulalogic.io</url>
 
+    <!-- 模块 -->
     <modules>
         <module>nebula-core</module>
     </modules>
 
     <dependencyManagement>
+        <!-- 在这里统一管理所有依赖版本 -->
         <dependencies>
             <dependency>
                 <groupId>com.googlecode.aviator</groupId>
