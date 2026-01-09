@@ -40,7 +40,7 @@ Nebula Engine is **not** intended for:
 
 ## Documentation
 
-- [Architecture Brief](./docs/architecture/architecture-brief.md) – Project positioning, core concepts, and runtime model
+- [Architecture Brief](./docs/architecture/01-Architecture%20Definition-V1.md) – Project positioning, core concepts, and runtime model
 - [User Guide](./docs/user-guide.md) – Usage patterns and integration guide (coming soon)
 
 ## Project Status
