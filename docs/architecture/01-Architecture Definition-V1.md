@@ -242,5 +242,75 @@ Nebula-Engine 遵循 **"上下文驱动、规则编排、决策追溯"** 的设�
 **Nebula-Engine** 有意识地规避了**流程编排、分布式调度、持久化与复杂计算**能力，以换取 **极简的计算模型、可预测的执行行为以及低侵入的嵌入式使用体验**。
 
 
-## Evolution Points - 演进点
+## Evolution Points - 未来演进方向
+
+在设计与实现 **Nebula-Engine V1.0** 核心架构时，应在接口定义上保持高度开放，为以下潜在的扩展场景预留“架构钩子 (Architectural Hooks)”。
+
+### 规则表达能力的增强 (Rule Expression)
+
+* **多格式解析 SPI (Pluggable Parsers)：**
+
+    - **现状：** 仅支持结构化声明（JSON/YAML）。
+
+    - **演进：** 抽象 `Rule Loader` 与 `Rule Parser` 接口。未来可无缝扩展对 XML 甚至自定义领域特定语言（DSL）的支持。
+
+* **脚本引擎嵌入 (Scripting Support)**：
+
+    - **现状：** 仅支持基础的算术与逻辑运算符。
+
+    - **演进：** 预留 `ExpressionEvaluator` 接口。未来可接入 Groovy、JavaScript 或 Python 等高性能脚本引擎，处理极其复杂的非标准化逻辑。
+
+* **自定义算子注册 (Extensible Evaluator)：**
+
+    - **现状**：内置有限的标准操作符。
+    - **演进**：建立 `OperatorProvider` 算子注册机制。允许开发者注入自定义函数（如 `isInDateRange()`, `matchesRegex()`），增强条件的表达深度。
+
+### 规则治理与编排 (Governance & Loading)
+
+* **规则源适配器 (Pluggable Parser)：**
+
+    - **现状：** 规则加载逻辑相对固定。
+
+    - **演进：** 将解析逻辑抽象为 `RuleSourceAdapter`。未来无需改动引擎内核，即可支持 Nacos、Apollo、Redis 等配置中心的流式实时加载。
+
+* **规则热更新机制 (Hot-Reloading)：**
+
+    - **现状**：引擎启动时加载快照。
+    - **演进**：建立 `AtomicReference` 监听机制（如监听配置中心或文件变动）。支持在不停止服务的情况下实现规则集的平滑切换与回滚。
+
+* **逻辑编排 (Rule Chaining / DAG)：**
+
+    - **现状**：规则间完全独立平等，单次单向执行。
+    - **演进**：引入规则间的拓扑关系。支持将 Rule 组织为有向无环图（DAG），实现从“决策判断”向“轻量级逻辑编排”的平滑跨越。
+
+### 运行时深度增强 (Runtime Enhancement)
+
+* **并行评估与策略扩展 (Concurrency & Strategy)：**
+    - **现状：** 顺序遍历规则，策略固定。
+    - **演进：** 扩展 `ExecutionStrategy`。支持并行评估（Parallel Evaluation）以及基于权重、标签的分发策略，利用多核性能应对大规模规则集。
+* **决策审计与链路追踪 (Decision Audit Trail)：**
+    - **现状：** `Decision` 记录基础执行路径。
+    - **演进：** 引入 `ExecutionInterceptor`。全量记录 Condition 的评估过程、执行耗时及上下文快照，满足金融级合规追溯与黑盒逻辑透明化需求。
+* **匹配算法升级 (Advanced Algorithms)**：
+    - **现状：** 简单的线性匹配。
+    - **演进：** 当规则规模达到万级以上时，考虑在不改变用户接口的前提下，在引擎内部引入 **Rete** 或 **LEAPS** 等高级算法优化匹配效率。
+
+### 自动化与观测 (Integration & Observability)
+
+* **动作分发器 (Action Dispatcher)：**
+    - **现状：** 引擎仅返回动作描述，由宿主应用执行。
+    - **演进：** 提供标准的 `ActionHandler` 接口。允许用户通过简单配置，将某些 Side-Effect 型动作直接路由到消息队列 (MQ)、Webhook 或 Prometheus 监控系统，实现半自动化的闭环。
+* **可观测性钩子 (Observability Hooks)：**
+    - **现状**：无内置监控。
+    - **演进**：预留性能埋点钩子。未来可原生集成 Prometheus 或 OpenTelemetry，实时度量规则命中率、决策时延等关键业务指标。
+
+### 总结性说明
+
+**Nebula-Engine 的演进策略严格遵循以下原则：**
+
+1. **模型稳定优先于功能丰富**：核心概念模型（Context/Rule/Engine）必须保持长期稳定。
+2. **接口扩展优先于实现扩展**：通过接口与 SPI 机制预留可能性，而非在 V1.0 中堆砌实现。
+3. **不以未来假设破坏当前简洁性**：V1.0 必须是一个可预测、低心智负担的决策内核。
+
+**所有演进点都必须在不破坏“极简”这一核心价值的前提下展开。**
 
