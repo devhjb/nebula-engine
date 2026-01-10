@@ -165,7 +165,7 @@ Nebula-Engine 遵循 **"上下文驱动、规则编排、决策追溯"** 的设�
 
 每次 `engine.execute(context)` 均为一次**瞬时、无状态、同步**的决策过程。
 
-1. **上下文注入（Context Ingestion）**
+1. **上下文注入 (Context Ingestion)**
 
     - 外部业务逻辑（宿主应用）遭遇一个决策点（如用户下单、风险校验）。
     - 宿主应用收集业务数据，构造并初始化一个 `Context` 对象。
