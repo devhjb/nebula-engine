@@ -1,0 +1,115 @@
+@startuml
+title Nebula-Core Core Class Diagram (Final Architecture)
+
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+' --- 1. MODEL (绝对基石) ---
+package "com.nebula.engine.core.model" {
+    interface Context {
+        + get(key: String): Object
+        + getTyped(key: String, type: Class<T>): T
+        + asReadOnly(): Context
+    }
+    class Rule {
+        - id: String
+        - priority: int
+        - conditions: List<Condition>
+        - actions: List<Action>
+    }
+    class Decision {
+        - status: DecisionStatus
+        - startTime: long
+        - endTime: long
+        - results: List<ActionResult>
+        - trace: ExecutionTrace
+    }
+    note right of Context: 金融级精度与类型安全容器
+}
+
+' --- 2. EXCEPTION (语义契约) ---
+package "com.nebula.engine.core.exception" {
+    class NebulaException <<RuntimeException>>
+    class LogicException
+    class SystemException
+    enum ErrorCode
+
+    NebulaException <|-- LogicException
+    NebulaException <|-- SystemException
+    NebulaException o-- ErrorCode
+}
+
+' --- 3. API (对外门面) ---
+package "com.nebula.engine.core.api" {
+    interface NebulaEngine {
+        + execute(context: Context): Decision
+    }
+    class NebulaBootstrap {
+        + {static} builder(): EngineBuilder
+    }
+}
+
+' --- 4. SPI (扩展协议) ---
+package "com.nebula.engine.core.spi" {
+    interface RuleLoader {
+        + load(): List<Rule>
+    }
+    interface ComponentProvider {
+        + getEvaluator(): ConditionEvaluator
+        + getExecutor(): ActionExecutor
+    }
+}
+
+' --- 5. ENGINE (心脏与生命周期) ---
+package "com.nebula.engine.core.engine" {
+    class DefaultEngine implements com.nebula.engine.core.api.NebulaEngine {
+        - pipeline: ExecutionPipeline
+        - rules: List<Rule>
+        + execute(context: Context): Decision
+    }
+    class EngineBuilder {
+        + withLoader(loader: RuleLoader): EngineBuilder
+        + withProvider(provider: ComponentProvider): EngineBuilder
+        + build(): NebulaEngine
+    }
+}
+
+' --- 6. RUNTIME (动力内核) ---
+package "com.nebula.engine.core.runtime" {
+    package "pipeline" {
+        class ExecutionPipeline {
+            + run(session: EngineSession)
+        }
+    }
+    package "session" {
+        class EngineSession {
+            - context: Context
+            - trace: ExecutionTrace
+            + record(event: String)
+        }
+    }
+    package "evaluator" {
+        interface ConditionEvaluator {
+            + evaluate(condition: Condition, context: Context): boolean
+        }
+    }
+}
+
+' --- 7. INTERNAL (底层支撑) ---
+package "com.nebula.engine.core.internal.support" {
+    class ReflectUtils <<internal>>
+    class Assert <<internal>>
+}
+
+' --- 核心关联关系 ---
+NebulaBootstrap ..> EngineBuilder : creates
+EngineBuilder --> DefaultEngine : instantiates
+DefaultEngine --> ExecutionPipeline : delegates
+ExecutionPipeline ..> EngineSession : manages
+EngineSession o-- Context : encapsulates
+ExecutionPipeline ..> ConditionEvaluator : uses
+
+' 依赖约束验证
+DefaultEngine ..> RuleLoader : uses
+ConditionEvaluator ..> Context : evaluates
+@enduml
