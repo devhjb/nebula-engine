@@ -1,0 +1,57 @@
+@startuml
+title Nebula-Core Optimized Architecture (Strict Irreversible Direction)
+
+' 布局优化：从上到下体现层级
+top to bottom direction
+skinparam packageStyle rectangle
+
+package "API" as API
+package "MODEL" as MODEL
+package "SPI" as SPI
+package "RUNTIME" as RUNTIME
+package "ENGINE" as ENGINE
+package "EXCEPTION" as EXCEPTION
+package "INTERNAL" as INTERNAL
+
+' --- 核心契约层 (最稳定) ---
+' MODEL 是绝对的叶子节点，不依赖任何包
+
+' --- 异常与语义层 ---
+EXCEPTION --> MODEL : reference data
+
+' --- 交互边界层 ---
+API --> MODEL : input/output
+API --> EXCEPTION : error contract
+
+SPI --> MODEL : load/provide
+SPI --> EXCEPTION : contract failure
+
+' --- 运行核心层 ---
+ENGINE --> API : implement
+ENGINE --> RUNTIME : drive
+ENGINE --> MODEL : state management
+ENGINE --> EXCEPTION : lifecycle error
+
+RUNTIME --> MODEL : process
+RUNTIME --> EXCEPTION : execution error
+RUNTIME --> INTERNAL : low-level support
+
+' --- 底层支撑层 (无业务感知) ---
+' INTERNAL 不依赖 MODEL, 不依赖 EXCEPTION
+
+' --- 禁止依赖约束 (红线) ---
+MODEL -[#red,dashed]-> API
+MODEL -[#red,dashed]-> SPI
+MODEL -[#red,dashed]-> ENGINE
+MODEL -[#red,dashed]-> RUNTIME
+MODEL -[#red,dashed]-> INTERNAL
+MODEL -[#red,dashed]-> EXCEPTION
+
+INTERNAL -[#red,dashed]-> MODEL : business leakage
+INTERNAL -[#red,dashed]-> API
+INTERNAL -[#red,dashed]-> SPI
+
+SPI -[#red,dashed]-> ENGINE
+SPI -[#red,dashed]-> RUNTIME
+
+@enduml
