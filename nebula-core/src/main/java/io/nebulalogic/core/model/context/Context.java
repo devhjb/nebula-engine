@@ -39,6 +39,21 @@ public interface Context {
     Object get(String key);
 
     /**
+     * 获取金融级数值。
+     * <p>所有涉及金额、利率、费率、权重的读取，必须通过此方法获取，以确保进入引擎的数值符合金融级契约。</p>
+     *  <ul>
+     *     <li>如果原始对象已是 FinancialValue，应直接返回。</li>
+     *     <li>如果是 String/Number，则进行转换并保证单向一致性。</li>
+     *     <li>避免重复转换带来的性能损耗。</li>
+     * </ul>
+     *
+     * @param key 键名
+     * @return FinancialValue 实例
+     * @throws com.nebula.engine.core.exception.LogicException 若数据无法转换为数值类型
+     */
+    FinancialValue getFinancial(String key);
+
+    /**
      * 获取强类型数据。
      *
      * @param key  键名
@@ -54,21 +69,6 @@ public interface Context {
         }
         return Optional.empty();
     }
-
-    /**
-     * 获取金融级数值。
-     * <p>所有涉及金额、利率、费率、权重的读取，必须通过此方法获取，以确保进入引擎的数值符合金融级契约。</p>
-     *  <ul>
-     *     <li>如果原始对象已是 FinancialValue，应直接返回。</li>
-     *     <li>如果是 String/Number，则进行转换并保证单向一致性。</li>
-     *     <li>避免重复转换带来的性能损耗。</li>
-     * </ul>
-     *
-     * @param key 键名
-     * @return FinancialValue 实例
-     * @throws com.nebula.engine.core.exception.LogicException 若数据无法转换为数值类型
-     */
-    FinancialValue getFinancial(String key);
 
     /**
      * 获取布尔值
@@ -92,7 +92,7 @@ public interface Context {
      */
     default String getString(String key) {
         Object val = get(key);
-        return val == null ? "" : String.valueOf(val);
+        return val == null ? "" : String.valueOf(val).trim();
     }
 
     /**
@@ -101,7 +101,9 @@ public interface Context {
      * @param key 键名
      * @return 是否存在
      */
-    boolean contains(String key);
+    default boolean contains(String key) {
+        return get(key) != null;
+    }
 
     /**
      * 转换为 Map 结构（通常用于序列化或 Trace 记录）
