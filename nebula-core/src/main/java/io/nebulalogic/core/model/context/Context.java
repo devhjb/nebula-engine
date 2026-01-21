@@ -46,7 +46,14 @@ public interface Context {
      * @param <T>  类型泛型
      * @return 封装在 Optional 中的强类型对象
      */
-    <T> Optional<T> getTyped(String key, Class<T> type);
+    @SuppressWarnings("unchecked")
+    default <T> Optional<T> getTyped(String key, Class<T> type) {
+        Object val = get(key);
+        if (type.isInstance(val)) {
+            return Optional.of((T) val);
+        }
+        return Optional.empty();
+    }
 
     /**
      * 获取金融级数值。
@@ -69,7 +76,12 @@ public interface Context {
      * @param key 键名
      * @return 布尔结果
      */
-    Boolean getBoolean(String key);
+    default Boolean getBoolean(String key) {
+        Object val = get(key);
+        if (val instanceof Boolean b) return b;
+        if (val instanceof String s) return Boolean.parseBoolean(s);
+        return false;
+    }
 
     /**
      * 获取字符串类型数据
