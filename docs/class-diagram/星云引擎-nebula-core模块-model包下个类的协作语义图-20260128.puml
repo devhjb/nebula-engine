@@ -1,0 +1,65 @@
+@startuml NebulaEngine_Semantics
+
+' 定义组件
+interface Rule {
+    +String getId()
+    +String getName()
+    +Condition getCondition()
+    +List<Action> getActions()
+    +int getPriority()
+}
+
+interface Condition {
+    +boolean evaluate(ExecutionContext ctx)
+}
+
+interface Action {
+    +void execute(ExecutionContext ctx)
+}
+
+interface ExecutionContext {
+    +Context getContext()
+    +Optional<MutatorContext> getMutatorContext()
+    +ExecutionPhase getPhase()
+    +ExecutionContext snapshot()
+}
+
+interface MutatorContext {
+    +void put(String key, Object value)
+    +void remove(String key)
+    +void putAll(Map<String,Object> data)
+}
+
+interface Context {
+    +Object get(String key)
+    +<T> Optional<T> getTyped(String key, Class<T> type)
+    +FinancialValue getFinancial(String key)
+    +Boolean getBoolean(String key)
+    +String getString(String key)
+    +boolean contains(String key)
+    +Map<String,Object> asMap()
+    +Set<String> keySet()
+    +Context asReadOnly()
+}
+
+enum ExecutionPhase {
+    PRE_EVALUATION
+    CONDITION
+    ACTION
+    POST_ACTION
+}
+
+' 关系
+Rule "1" --> "1" Condition : has
+Rule "1" --> "0..*" Action : has
+
+Condition --> ExecutionContext : read-only
+Action --> ExecutionContext : requests MutatorContext
+
+ExecutionContext --> Context : exposes read-only
+ExecutionContext --> MutatorContext : exposes if phase==ACTION
+
+ExecutionContext --> ExecutionPhase : tracks phase
+MutatorContext --> Context : extends Context
+
+@enduml
