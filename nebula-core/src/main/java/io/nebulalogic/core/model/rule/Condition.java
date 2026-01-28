@@ -11,8 +11,14 @@
 package io.nebulalogic.core.model.rule;
 
 
+import io.nebulalogic.core.exception.ConfigurationFault;
+import io.nebulalogic.core.exception.EngineErrorCode;
+import io.nebulalogic.core.exception.EngineFault;
+import io.nebulalogic.core.exception.LogicFault;
 import io.nebulalogic.core.model.context.Context;
 import io.nebulalogic.core.model.context.ExecutionContext;
+
+import java.util.Map;
 
 /**
  * @author jabbey
@@ -31,7 +37,8 @@ public interface Condition {
      *
      * @param ctx 仅提供只读视图的ExecutionContext，不应为null
      * @return true表示条件满足，规则应该执行
-     * @throws io.nebulalogic.core.exception.NebulaException 如果ctx为null或评估过程中发生错误
+     * @throws LogicFault         如果评估过程中发生业务逻辑错误
+     * @throws ConfigurationFault 如果ctx为null或参数配置错误
      */
     boolean evaluate(ExecutionContext ctx);
 
@@ -40,10 +47,29 @@ public interface Condition {
      *
      * @param other 另一个条件，不应为null
      * @return 组合后的新条件
-     * @throws io.nebulalogic.core.exception.NebulaException 如果other为null
+     * @throws ConfigurationFault 如果other为null
      */
     default Condition and(Condition other) {
-        return ctx -> this.evaluate(ctx) && other.evaluate(ctx);
+        if (other == null) {
+            throw new ConfigurationFault(
+                    EngineErrorCode.CONFIGURATION_ERROR,
+                    "Condition AND operation requires non-null operand",
+                    Map.of("operation", "AND", "context", "condition_composition")
+            );
+        }
+
+        return ctx -> {
+            try {
+                return this.evaluate(ctx) && other.evaluate(ctx);
+            } catch (EngineFault e) {
+                // 包装组合条件评估中的异常，保留原始信息
+                throw new LogicFault(
+                        EngineErrorCode.CONDITION_EVAL_ERROR,
+                        "Condition AND evaluation failed",
+                        Map.of("nestedFault", e.getMessage())
+                ).withAttribute("operation", "AND");
+            }
+        };
     }
 
 
@@ -53,10 +79,28 @@ public interface Condition {
      *
      * @param other 另一个条件，不应为null
      * @return 组合后的新条件
-     * @throws io.nebulalogic.core.exception.NebulaException 如果other为null
+     * @throws ConfigurationFault 如果other为null
      */
     default Condition or(Condition other) {
-        return ctx -> this.evaluate(ctx) || other.evaluate(ctx);
+        if (other == null) {
+            throw new ConfigurationFault(
+                    EngineErrorCode.CONFIGURATION_ERROR,
+                    "Condition OR operation requires non-null operand",
+                    Map.of("operation", "OR", "context", "condition_composition")
+            );
+        }
+
+        return ctx -> {
+            try {
+                return this.evaluate(ctx) || other.evaluate(ctx);
+            } catch (EngineFault e) {
+                throw new LogicFault(
+                        EngineErrorCode.CONDITION_EVAL_ERROR,
+                        "Condition OR evaluation failed",
+                        Map.of("nestedFault", e.getMessage())
+                ).withAttribute("operation", "OR");
+            }
+        };
     }
 
     /**
@@ -66,7 +110,17 @@ public interface Condition {
      * @return 取反后的新条件
      */
     default Condition negate() {
-        return ctx -> !this.evaluate(ctx);
+        return ctx -> {
+            try {
+                return !this.evaluate(ctx);
+            } catch (EngineFault e) {
+                throw new LogicFault(
+                        EngineErrorCode.CONDITION_EVAL_ERROR,
+                        "Condition negation evaluation failed",
+                        Map.of("nestedFault", e.getMessage())
+                ).withAttribute("operation", "NOT");
+            }
+        };
     }
 
     /**

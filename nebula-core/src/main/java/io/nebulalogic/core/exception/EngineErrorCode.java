@@ -11,6 +11,9 @@
 package io.nebulalogic.core.exception;
 
 
+import java.util.Arrays;
+import java.util.Map;
+
 /**
  * @author jabbey
  * @BelongProject nebula-engine
@@ -30,7 +33,17 @@ public enum EngineErrorCode implements ErrorCode {
     VALUE_OUT_OF_RANGE("E-D-002", "Value is out of range"),
 
     /* --- 逻辑控制相关 --- */
-    PHASE_ILLEGAL("E-L-001", "Illegal execution phase");
+    PHASE_ILLEGAL("E-L-001", "Illegal execution phase"),
+
+    /* --- 条件评估相关 --- */
+    CONDITION_EVAL_ERROR("E-COND-001", "Condition evaluation failed"),
+
+    /* --- 配置相关 --- */
+    CONFIGURATION_ERROR("E-CFG-001", "Configuration error"),
+
+    /* --- 动作执行相关错误 --- */
+    ACTION_EXEC_ERROR("E-ACT-001", "Action execution failed");
+
 
     private final String code;
 
@@ -49,5 +62,34 @@ public enum EngineErrorCode implements ErrorCode {
     @Override
     public String message() {
         return message;
+    }
+
+    /**
+     * 根据错误码字符串查找对应的枚举值
+     *
+     * @param code 错误码字符串
+     * @return 对应的EngineErrorCode枚举值
+     * @throws ConfigurationFault 如果找不到对应的错误码
+     */
+    public static EngineErrorCode fromCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new ConfigurationFault(
+                    EngineErrorCode.CONFIGURATION_ERROR,
+                    "Error code cannot be null or empty",
+                    Map.of("providedCode", code)
+            );
+        }
+
+        for (EngineErrorCode errorCode : values()) {
+            if (errorCode.code.equals(code)) {
+                return errorCode;
+            }
+        }
+
+        throw new ConfigurationFault(
+                EngineErrorCode.CONFIGURATION_ERROR,
+                "Unknown error code: " + code,
+                Map.of("providedCode", code, "availableCodes", Arrays.stream(values()).map(EngineErrorCode::code).toList())
+        );
     }
 }

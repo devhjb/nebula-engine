@@ -11,7 +11,13 @@
 package io.nebulalogic.core.model.rule;
 
 
+import io.nebulalogic.core.exception.ConfigurationFault;
+import io.nebulalogic.core.exception.EngineErrorCode;
+import io.nebulalogic.core.exception.EngineFault;
+import io.nebulalogic.core.exception.LogicFault;
 import io.nebulalogic.core.model.context.MutatorContext;
+
+import java.util.Map;
 
 /**
  * @author jabbey
@@ -37,8 +43,8 @@ public interface Action {
      * <p><b>设计哲学：</b>Action不判断条件，完全信任调用方的决策</p>
      *
      * @param ctx 已授予写能力的上下文，不应为null
-     * @throws RuntimeException                              动作执行失败时应抛出运行时异常
-     * @throws io.nebulalogic.core.exception.NebulaException 如果ctx为null
+     * @throws RuntimeException                                 动作执行失败时应抛出运行时异常
+     * @throws io.nebulalogic.core.exception.ConfigurationFault 如果ctx为null或参数配置错误
      */
     void execute(MutatorContext ctx);
 
@@ -48,12 +54,28 @@ public interface Action {
      *
      * @param next 下一个动作，不应为null
      * @return 组合后的新动作
-     * @throws io.nebulalogic.core.exception.NebulaException 如果next为null
+     * @throws io.nebulalogic.core.exception.ConfigurationFault 如果next为null
      */
     default Action andThen(Action next) {
+        if (next == null) {
+            throw new ConfigurationFault(
+                    EngineErrorCode.CONFIGURATION_ERROR,
+                    "Action chain requires non-null next action",
+                    Map.of("operation", "andThen", "context", "action_chaining")
+            );
+        }
+
         return ctx -> {
-            this.execute(ctx);
-            next.execute(ctx);
+            try {
+                this.execute(ctx);
+                next.execute(ctx);
+            } catch (EngineFault e) {
+                // 保留原始异常信息，添加上下文
+                if (e instanceof LogicFault) {
+                    throw ((LogicFault) e).withAttribute("actionChain", "sequential");
+                }
+                throw e;
+            }
         };
     }
 
@@ -76,6 +98,23 @@ public interface Action {
      * @return 设置变量动作
      */
     static Action setVariable(String key, Object value) {
-        return ctx -> ctx.put(key, value);
+        return ctx -> {
+            if (ctx == null) {
+                throw new ConfigurationFault(
+                        EngineErrorCode.CONFIGURATION_ERROR,
+                        "MutatorContext cannot be null for variable assignment",
+                        Map.of("key", key, "value", value)
+                );
+            }
+            try {
+                ctx.put(key, value);
+            } catch (EngineFault e) {
+                throw new LogicFault(
+                        EngineErrorCode.ACTION_EXEC_ERROR,
+                        "Failed to set variable",
+                        Map.of("key", key, "value", value, "nestedFault", e.getMessage())
+                );
+            }
+        };
     }
 }
