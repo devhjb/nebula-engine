@@ -1,0 +1,84 @@
+@startuml
+title Nebula-Engine Core Semantics\nExecutionPhase × ExecutionContext × MutatorContext
+
+skinparam style strictuml
+skinparam classAttributeIconSize 0
+
+' =========================
+' 核心角色定义
+' =========================
+
+enum ExecutionPhase {
+  PRE_EVALUATION
+  CONDITION
+  ACTION
+  POST_ACTION
+  --
+  +isWritable(): boolean
+}
+
+interface Context {
+  <<ReadOnly>>
+  +get(key): Object
+}
+
+interface MutatorContext {
+  <<WriteCapability>>
+  +put(key, value)
+  +emitResult(result)
+}
+
+interface ExecutionContext {
+  +context(): Context
+  +mutator(): Optional<MutatorContext>
+  +phase(): ExecutionPhase
+  +freeze(): Context
+}
+
+' =========================
+' 关系建模
+' =========================
+
+ExecutionContext --> ExecutionPhase : holds
+ExecutionContext --> Context : exposes (read-only)
+ExecutionContext --> MutatorContext : conditionally exposes
+
+ExecutionPhase ..> MutatorContext : grants write capability\n[only if isWritable()]
+
+' =========================
+' 语义约束说明
+' =========================
+
+note right of ExecutionPhase
+ExecutionPhase 是「语义状态」
+不是流程步骤说明书
+
+决定：
+- 是否允许副作用
+- 是否可写 Context
+end note
+
+note bottom of ExecutionContext
+ExecutionContext 是「能力调度器」
+
+- 永远暴露 Context（只读）
+- 仅在 ACTION 阶段
+  授予 MutatorContext
+end note
+
+note left of MutatorContext
+MutatorContext 不是 Context 的子类
+
+它代表：
+- 被授权的写能力
+- 副作用的唯一入口
+end note
+
+note bottom of Context
+Context 是规则执行的
+唯一事实来源（SSOT）
+
+Condition 只能依赖它
+end note
+
+@enduml
